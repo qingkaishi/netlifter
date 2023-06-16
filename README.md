@@ -27,7 +27,7 @@ $ cmake ..
 $ make
 ```
 
-Run the following command for regression testing
+Run the following command for regression testing. You can refer to `benchmarks/popeye/regession.sh` for how we run each benchmark protocol
 
 ```bash
 $ cd build
