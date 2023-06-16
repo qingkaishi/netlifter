@@ -35,8 +35,11 @@ $ make regression
 
 ### Run
 
+
 Details of Popeye's I/O format can be found [here](https://docs.google.com/document/d/1u80FbynWhiit1cgC0s5sGQcInXIbXNDOs3kEJbGR9VA/edit?usp=sharing).
 Please refer to benchmarks/readme.txt for more examples.
+Basically, the input is LLVM bitcode with some simple annotations that annotate the byte buffer containing the network message.
+and the output is the message format in BNF.
 
 Note that when compiling source code to LLVM bitcode,
 please add `-fno-vectorize -fno-slp-vectorize` to `CFLAGS` and `CXXFLAGS`
@@ -45,29 +48,3 @@ to avoid generating vectorized instructions, which currently we do not support.
 Also, it's better to remove all `-Ox` options and add the `-g` option
 to `CFLAGS` and `CXXFLAGS`, which will let the bitcode include debug information.
 The debug information will help infer the name of fields in a network message.
-
-What follows is the basic steps of running our tool. You may use `wllvm` to compile 
-all source files in a C/C++ project into a single bitcode file.
-
-```bash
-$ # since we do not support vectorized instructions, please use
-$ # -fno-vectorize -fno-slp-vectorize when producing the bitcode
-$ clang -emit-llvm -g -fno-vectorize -fno-slp-vectorize test.c -o test.bc
-$ ./popeye -popeye-output:bnf test.bc 
-=========================
-L0 := B[2] B[3];
- assert(B[2]B[3] ≠ 1)
- assert(B[2]B[3] ≠ 2)
- assert(B[2]B[3] ≠ 5)
-L1 := B[2] B[3];
- assert(B[2]B[3] = 1)
-L2 := B[2] B[3];
- assert(B[2]B[3] = 2)
-L3 := B[2] B[3];
- assert(B[2]B[3] = 5)
-S := B[0] B[1] L0 | L1 | L2 | L3;
-
-=========================
-Popeye completes in 6ms
-```
-
