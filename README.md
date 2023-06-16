@@ -1,8 +1,7 @@
 ### Popeye
 
-Popeye is a prototype implementation of the technique known as NetLifter, which was published in CCS 2023.
-Basically, it aims to lift the source code of a protocol implementation to BNF-style protocol formats.
-However, it can also be used as a precise slicing framework for many other applications.
+Popeye is a prototype implementation of the technique known as NetLifter, which is published in CCS 2023
+and aims to lift the source code of a protocol implementation to BNF-style protocol formats.
 
 ```
 Lifting Network Protocol Implementation to Precise Format Specification with Security Applications
