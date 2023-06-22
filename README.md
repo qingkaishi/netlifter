@@ -16,7 +16,7 @@ There are a lot of rough edges and bugs in this early prototype. Pull requests a
 ### Build
 
 Dependency:
-* llvm-12.0.1, you can install it by `sudo apt install llvm-12`
+* llvm-12.0.1, you can install it by `sudo apt install llvm-12`.
 * z3-4.8.12, better to use [my copy](https://github.com/qingkaishi/z3/tree/4.8.12-popeye), need to compile and install using [cmake](https://github.com/qingkaishi/z3/blob/4.8.12-popeye/README-CMake.md).
 
 ```bash
@@ -26,7 +26,7 @@ $ cmake ..
 $ make
 ```
 
-Run the following command for regression testing. You can refer to `benchmarks/popeye/regession.sh` for how we run each benchmark protocol
+Run the following command for regression testing. You can refer to `benchmarks/popeye/regession.sh` for how we run each benchmark protocol.
 
 ```bash
 $ cd build
@@ -36,10 +36,10 @@ $ make regression
 ### Run
 
 
-Details of Popeye's I/O format can be found [here](https://docs.google.com/document/d/1u80FbynWhiit1cgC0s5sGQcInXIbXNDOs3kEJbGR9VA/edit?usp=sharing).
+Details of how we run Popeye can be found [here](https://docs.google.com/document/d/1u80FbynWhiit1cgC0s5sGQcInXIbXNDOs3kEJbGR9VA/edit?usp=sharing).
 Please refer to benchmarks/readme.txt for more examples.
 Basically, the input is LLVM bitcode with some simple annotations that annotate the byte buffer containing the network message.
-and the output is the message format in BNF.
+The output is the message format in BNF.
 
 Note that when compiling source code to LLVM bitcode,
 please add `-fno-vectorize -fno-slp-vectorize` to `CFLAGS` and `CXXFLAGS`
