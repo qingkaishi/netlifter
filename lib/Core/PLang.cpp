@@ -18,6 +18,7 @@
 
 #include "Core/PLang.h"
 #include "Support/Debug.h"
+#include "Support/VSpell.h"
 
 static std::string space(unsigned N) {
     std::string Ret;
@@ -42,12 +43,14 @@ raw_ostream &operator<<(raw_ostream &O, const PLang &L) {
 }
 
 PLang::PLang(SliceGraph *G, const std::string &EntryName) {
+    auto RealEntryName = VSpell::enabled() ? VSpell::function() : EntryName;
+
     std::set<z3::expr, Z3::less_than> Vars;
     G->dfs([&Vars](const SliceGraphNode *N) {
         auto E = N->getCondition();
-        auto CV = Z3::find_all(E, true, [](const z3::expr &E) {
-            return E.is_const() && !E.is_numeral();
-        });
+        auto CV = Z3::find_all(E,
+                               [](const z3::expr &E) { return E.is_const() && !E.is_numeral() && !Z3::is_length(E); },
+                               [](const z3::expr &E) { return Z3::is_naming_eq(E); });
         for (auto C: CV) Vars.insert(C);
     });
     bool HasSeq = false;
@@ -71,7 +74,7 @@ PLang::PLang(SliceGraph *G, const std::string &EntryName) {
 
     FuncVec.emplace_front();
     auto &EntryFuncCode = FuncVec.front();
-    EntryFuncCode.append("fun ").append(EntryName).append("(").append(Formals).append(") : int {\n");
+    EntryFuncCode.append("fun ").append(RealEntryName).append("(").append(Formals).append(") : int {\n");
     if (HasSeq)
         EntryFuncCode.append("    var len : int;\n").append("    len = sizeof(B);\n");
     for (auto EIt = G->entry_begin(), EEnd = G->entry_end(); EIt != EEnd; ++EIt) {

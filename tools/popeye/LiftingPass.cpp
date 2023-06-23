@@ -87,7 +87,7 @@ bool LiftingPass::runOnModule(Module &M) {
     std::string OutputPFile = "";
     std::string OutputDotFile = "";
     bool OutputBNF = !EnableOutputs.getNumOccurrences(); // default true
-    bool OutputFSM = false;
+    std::string OutputFSM = "";
     for (auto &Op: EnableOutputs) {
         StringRef OpStr(Op);
         if (OpStr.startswith("p:")) {
@@ -96,8 +96,8 @@ bool LiftingPass::runOnModule(Module &M) {
             OutputDotFile = OpStr.substr(strlen("dot:")).str();
         } else if (OpStr.startswith("bnf")) {
             OutputBNF = true;
-        } else if (OpStr.startswith("fsm")) {
-            OutputFSM = true;
+        } else if (OpStr.startswith("fsm:")) {
+            OutputFSM = OpStr.substr(strlen("fsm:")).str();
         }
     }
 
@@ -134,7 +134,7 @@ bool LiftingPass::runOnModule(Module &M) {
         NewSlice->simplifyAfterSymbolicExecution();
         if (!OutputDotFile.empty()) NewSlice->dot(OutputDotFile, "final");
         if (OutputBNF) outs() << BNF::get(NewSlice->pc()) << "\n";
-        if (OutputFSM) outs() << FSM::get(NewSlice) << "\n";
+        if (!OutputFSM.empty()) FSM(NewSlice).dump(OutputFSM);
         if (!OutputPFile.empty()) PLang(NewSlice, guessEntryName(Entry)).dump(OutputPFile);
         delete NewSlice;
     }

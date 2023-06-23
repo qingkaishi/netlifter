@@ -143,3 +143,80 @@ BoundRef Bound::createBound(int64_t N) {
         return std::make_shared<UpperBound>();
     return std::make_shared<ConstantBound>(N);
 }
+
+void BoundVec::push_back(const BoundRef &BR) {
+    Vec.push_back(BR);
+    if (MinVec.empty()) {
+        MinVec.push_back(BR);
+    } else {
+        bool NeedAdd = false;
+        for (unsigned I = 0; I < MinVec.size(); ++I) {
+            auto PossibleMin = MinVec[I];
+            bool LessThan = false;
+            try {
+                LessThan = BR < PossibleMin;
+            } catch (const std::runtime_error &) {
+                // not comparable, we need regard it as a min
+                NeedAdd = true;
+            }
+            if (LessThan) {
+                NeedAdd = true;
+                MinVec[I] = MinVec.back();
+                MinVec.pop_back();
+                --I;
+            }
+        }
+        if (NeedAdd) MinVec.push_back(BR);
+    }
+    if (MaxVec.empty()) {
+        MaxVec.push_back(BR);
+    } else {
+        bool NeedAdd = false;
+        for (unsigned I = 0; I < MaxVec.size(); ++I) {
+            auto PossibleMax = MaxVec[I];
+            bool GreaterThan = false;
+            try {
+                GreaterThan = BR > PossibleMax;
+            } catch (const std::runtime_error &) {
+                // not comparable, we need regard it as a min
+                NeedAdd = true;
+            }
+            if (GreaterThan) {
+                NeedAdd = true;
+                MaxVec[I] = MaxVec.back();
+                MaxVec.pop_back();
+                --I;
+            }
+        }
+        if (NeedAdd) MaxVec.push_back(BR);
+    }
+}
+
+void BoundVec::merge(BoundVecRef Src) {
+    z3::expr_vector SrcOrOps = Z3::find_consecutive_ops(Src->Op, Z3_OP_OR);
+    z3::expr_vector DstOrOps = Z3::find_consecutive_ops(this->Op, Z3_OP_OR);
+
+    if (SrcOrOps.size() == 1 && DstOrOps.size() == 1) {
+        this->Op = SrcOrOps[0] && DstOrOps[0];
+    } else {
+        z3::expr_vector OrVec = Z3::vec();
+        for (auto S: SrcOrOps) {
+            for (auto D: DstOrOps) {
+                OrVec.push_back(S && D);
+            }
+        }
+        this->Op = Z3::make_or(OrVec);
+    }
+
+    for (int K = 0; K < Src->size(); ++K) this->push_back((*Src)[K]);
+}
+
+BoundVecRef BoundVec::createBoundVecRef(const z3::expr &Op) {
+    z3::expr_vector Selects = Z3::find_all(Op, false, [](const z3::expr &E) {
+        return E.decl().decl_kind() == Z3_OP_SELECT;
+    });
+    auto Ret = std::shared_ptr<BoundVec>(new BoundVec(Op));
+    for (auto Select: Selects)
+        Ret->push_back(Bound::createBound(Select.arg(1)));
+    return Ret;
+}

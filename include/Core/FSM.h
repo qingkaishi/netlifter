@@ -27,11 +27,8 @@ using namespace llvm;
 
 class SliceGraph;
 
-class FSM;
-
 class FSMState;
 
-typedef std::shared_ptr<FSM> FSMRef;
 typedef std::shared_ptr<FSMState> FSMStateRef;
 
 class FSMState {
@@ -60,12 +57,14 @@ private:
     void replaceWildcardState();
 
 public:
-    static FSMRef get(const SliceGraph *);
+    explicit FSM(const SliceGraph *);
+
+    void dump(StringRef FileName);
 
 public:
-    friend raw_ostream &operator<<(llvm::raw_ostream &, const FSMRef &);
+    friend raw_ostream &operator<<(llvm::raw_ostream &, const FSM &);
 };
 
-raw_ostream &operator<<(llvm::raw_ostream &, const FSMRef &);
+raw_ostream &operator<<(llvm::raw_ostream &, const FSM &);
 
 #endif //CORE_FSM_H

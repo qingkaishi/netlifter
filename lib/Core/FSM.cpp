@@ -18,9 +18,10 @@
 
 #include "Core/FSM.h"
 #include "Core/SliceGraph.h"
+#include "Support/Debug.h"
 
-FSMRef FSM::get(const SliceGraph *G) {
-    FSMRef RetFSM = std::make_shared<FSM>();
+FSM::FSM(const SliceGraph *G) {
+    //FSMRef RetFSM = std::make_shared<FSM>();
     std::set<SliceGraphNode *> AllNodes;
     G->dfs([&AllNodes](SliceGraphNode *Node) {
         AllNodes.insert(Node);
@@ -34,12 +35,12 @@ FSMRef FSM::get(const SliceGraph *G) {
         if (Expr.decl().decl_kind() == Z3_OP_EQ
             && Z3::is_state(Expr.arg(0))
             && Z3::is_numeral_i64(Expr.arg(1), StateId)) {
-            if (!RetFSM->ID2StateMap.count(StateId))
-                RetFSM->ID2StateMap[StateId] = std::make_shared<FSMState>(StateId);
+            if (!this->ID2StateMap.count(StateId))
+                this->ID2StateMap[StateId] = std::make_shared<FSMState>(StateId);
             StateNodes.push_back(Node);
         } else if (Z3::is_transit_to(Expr) && Z3::is_numeral_i64(Expr.arg(0), StateId)) {
-            if (!RetFSM->ID2StateMap.count(StateId))
-                RetFSM->ID2StateMap[StateId] = std::make_shared<FSMState>(StateId);
+            if (!this->ID2StateMap.count(StateId))
+                this->ID2StateMap[StateId] = std::make_shared<FSMState>(StateId);
         }
     }
 
@@ -50,7 +51,7 @@ FSMRef FSM::get(const SliceGraph *G) {
         int64_t SrcStateId;
         FSMStateRef SrcState;
         if (Z3::is_numeral_i64(StateNode->getCondition().arg(1), SrcStateId)) {
-            SrcState = RetFSM->ID2StateMap.at(SrcStateId);
+            SrcState = this->ID2StateMap.at(SrcStateId);
         } else {
             llvm_unreachable("what... not possible...");
         }
@@ -71,15 +72,14 @@ FSMRef FSM::get(const SliceGraph *G) {
             int64_t TargetId;
             auto Expr = Target->getCondition();
             if (Z3::is_transit_to(Expr) && Z3::is_numeral_i64(Expr.arg(0), TargetId)) {
-                SrcState->addTransition(CondVec[K], RetFSM->ID2StateMap.at(TargetId));
+                SrcState->addTransition(CondVec[K], this->ID2StateMap.at(TargetId));
             } else {
                 llvm_unreachable("what... not possible...");
             }
         }
     }
 
-    RetFSM->replaceWildcardState();
-    return RetFSM;
+    this->replaceWildcardState();
 }
 
 void FSM::replaceWildcardState() {
@@ -98,7 +98,18 @@ void FSM::replaceWildcardState() {
     }
 }
 
-raw_ostream &operator<<(raw_ostream &DotStream, const FSMRef &Machine) {
+void FSM::dump(llvm::StringRef FileName) {
+    std::error_code EC;
+    raw_fd_ostream PStream(FileName.str(), EC, sys::fs::F_None);
+    if (PStream.has_error()) {
+        errs() << "[Error] Cannot open the file <" << FileName << "> for writing.\n";
+        return;
+    }
+    PStream << *this << "\n";
+    POPEYE_INFO(FileName << " dumped!");
+}
+
+raw_ostream &operator<<(raw_ostream &DotStream, const FSM &Machine) {
     auto DotState = [](FSMStateRef State, raw_ostream &OS) {
         OS << "\tstate_" << State->id() << "[label=\"" << State->id() << "\"];\n";
         for (auto &Ch: *State) {
@@ -110,7 +121,7 @@ raw_ostream &operator<<(raw_ostream &DotStream, const FSMRef &Machine) {
 
     DotStream << "\n";
     DotStream << "digraph machine {\n";
-    for (auto &It: Machine->ID2StateMap) {
+    for (auto &It: Machine.ID2StateMap) {
         DotState(It.second, DotStream);
     }
     DotStream << "}\n";

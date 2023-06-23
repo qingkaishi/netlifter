@@ -131,4 +131,43 @@ BoundRef operator+(const BoundRef &, int);
 
 BoundRef operator-(const BoundRef &, int);
 
+class BoundVec;
+
+typedef std::shared_ptr<BoundVec> BoundVecRef;
+
+class BoundVec {
+public:
+    z3::expr Op;
+    std::vector<BoundRef> Vec;
+    std::vector<BoundRef> MinVec;
+    std::vector<BoundRef> MaxVec;
+
+private:
+    /// for initialization of a vector of bound
+    /// @{
+    BoundVec(const z3::expr &Op) : Op(Op) {}
+
+    void push_back(const BoundRef &BR);
+    /// @}
+
+public:
+    BoundRef &back() { return Vec.back(); }
+
+    std::vector<BoundRef>::iterator begin() { return Vec.begin(); }
+
+    std::vector<BoundRef>::iterator end() { return Vec.end(); }
+
+    BoundRef &operator[](unsigned I) { return Vec[I]; }
+
+    const BoundRef &operator[](unsigned I) const { return Vec[I]; }
+
+    size_t size() const { return Vec.size(); }
+
+    void merge(BoundVecRef From);
+
+public:
+    /// create a vector of bound from a first-order-logic formula (usually a path constraint)
+    static BoundVecRef createBoundVecRef(const z3::expr &);
+};
+
 #endif //BNF_BOUND_H

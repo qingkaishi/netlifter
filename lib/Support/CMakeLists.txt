@@ -3,6 +3,7 @@ add_library(PPYSupport STATIC
         DL.cpp
         Dot.cpp
         RandomUInt64Generator.cpp
+        VSpell.cpp
         Z3.cpp
         Z3Arithmetic.cpp
         Z3Byte.cpp
