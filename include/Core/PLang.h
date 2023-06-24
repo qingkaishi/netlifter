@@ -47,6 +47,9 @@ private:
     std::string Actuals;
     std::string Formals;
 
+    bool UseExtract = false;
+    bool UseStrLen = false;
+
 public:
     PLang(SliceGraph *, const std::string &EntryName);
 

@@ -85,20 +85,41 @@ PLang::PLang(SliceGraph *G, const std::string &EntryName) {
     // return 0 means the function succeeds parsing the input packet
     EntryFuncCode.append(space(4)).append("return 1;\n}\n");
 
-    if (HasSeq) {
-        FuncVec.emplace_front();
-        auto &Header = FuncVec.front();
-        //Header.append("type bit = int;\n\n");
-        //Header.append("type byte = seq[bit];\n\n");
+    FuncVec.emplace_front();
+    auto &Header = FuncVec.front();
+    if (HasSeq || UseStrLen) {
         Header.append("type byte = int;\n\n");
         Header.append("fun select(B : seq[byte], i : int) : byte {\n");
         Header.append("    assert i < sizeof(B);\n");
         Header.append("    return B[i];\n");
         Header.append("}\n\n");
-        Header.append("fun handle_field(B : seq[byte], from : int, to : int, name : string) : int {\n");
-        Header.append("    if (to >= sizeof(B)) return 1;\n");
-        Header.append("    // add code here to handle a field from B[from] to B[to] according to its name\n");
+        Header.append("fun handle_field(B : seq[byte], from_idx : int, to_idx : int, name : string) : int {\n");
+        Header.append("    if (to_idx >= sizeof(B)) return 1;\n");
+        Header.append("    // add code here to handle a field from B[from_idx] to B[to_idx] according to its name\n");
         Header.append("    return 0;\n");
+        Header.append("}");
+    }
+    if (UseExtract) {
+        Header.append("\n\n");
+        Header.append("fun extract(val : byte, from_idx : int, to_idx : int) : int {\n");
+        Header.append("    assert from_idx >= 0;\n");
+        Header.append("    assert to_idx <= 7;\n");
+        Header.append("    // should call an external function to return a few bits in val.\n");
+        Header.append("    // this is because P does not support bit-wise operation by itself.\n");
+        Header.append("    return 0;\n");
+        Header.append("}");
+    }
+    if (UseStrLen) {
+        Header.append("\n\n");
+        Header.append("fun strlen(B : seq[byte], i : int) : int {\n");
+        Header.append("    // treat B as a C-string and calculate the length of string from B[i]\n");
+        Header.append("    var ret : int;\n");
+        Header.append("    ret = 0;\n");
+        Header.append("    while (i < sizeof(B) && B[i] != 0) {\n");
+        Header.append("        ret = ret + 1;\n");
+        Header.append("        i = i + 1;\n");
+        Header.append("    }\n");
+        Header.append("    return ret;\n");
         Header.append("}");
     }
 }
@@ -164,6 +185,8 @@ std::string PLang::toStringTemplate(const z3::expr &Expr, const char *Op) {
 std::string PLang::toStringDefault(const z3::expr &Expr) {
     auto Decl = Expr.decl();
     std::string Ret = Decl.name().str();
+    if (!UseStrLen && Ret == "strlen")
+        UseStrLen = true;
 
     unsigned NumParams = Z3_get_decl_num_parameters(Expr.ctx(), Decl);
     unsigned NumArgs = Expr.num_args();
@@ -369,6 +392,8 @@ std::string PLang::toString(const z3::expr &Expr) {
 //            case Z3_OP_ITE: {
 //                return toString(Expr.arg(0)) + " ? " + toString(Expr.arg(1)) + " : " + toString(Expr.arg(2));
 //            }
+            case Z3_OP_EXTRACT:
+                UseExtract = true;
             default: {
                 return toStringDefault(Expr);
             }

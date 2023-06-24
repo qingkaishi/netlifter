@@ -16,7 +16,14 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <llvm/Support/CommandLine.h>
+
 #include "Z3Macro.h"
+
+static cl::opt<bool> CompleteStrLen(
+        "popeye-enable-z3-strlen",
+        cl::desc("enable z3 strlen"),
+        cl::init(false));
 
 z3::expr Z3::byte_array() {
     auto &Ctx = Z3::bool_val(true).ctx();
@@ -386,10 +393,12 @@ bool Z3::byte_array_element_index_less_than(const z3::expr &A, const z3::expr &B
 z3::expr Z3::strlem(const z3::expr &FirstByte, int BitWidth) {
     assert(FirstByte.decl().decl_kind() == Z3_OP_SELECT);
 
-    // printing too much info makes it noisy..
-//    z3::sort DomainSorts[2] = {FirstByte.arg(0).get_sort(), FirstByte.arg(1).get_sort()};
-//    auto RangeSort = FirstByte.ctx().bv_sort(BitWidth);
-//    auto StrLenX = z3::function(STR_LEM, 2, DomainSorts, RangeSort);
-//    return StrLenX(FirstByte.arg(0), FirstByte.arg(1));
+    if (CompleteStrLen) {
+        // printing too much info may make it noisy..
+        z3::sort DomainSorts[2] = {FirstByte.arg(0).get_sort(), FirstByte.arg(1).get_sort()};
+        auto RangeSort = FirstByte.ctx().bv_sort(BitWidth);
+        auto StrLenX = z3::function(STR_LEN, 2, DomainSorts, RangeSort);
+        return StrLenX(FirstByte.arg(0), FirstByte.arg(1)) + 1;
+    }
     return Z3::bv_const(STR_LEM, BitWidth);
 }

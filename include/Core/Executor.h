@@ -113,6 +113,8 @@ private:
 
     void visitPopeyeMakeNamedObject(CallInst &I);
 
+    void visitPopeyeName(CallInst &I);
+
     void visitPopeyeMakeGlobal(CallInst &I);
 
     void visitMemCpy(CallInst &I);
@@ -198,7 +200,7 @@ private:
 
     std::string getVariableName(Instruction *);
 
-    bool getBytes2Name(const z3::expr &Expr, z3::expr_vector &Vec);
+    bool getBytes2Name(const z3::expr &Expr, z3::expr_vector &Vec, bool *ConsecutiveBytes = nullptr);
     /// @}
 };
 

@@ -330,6 +330,8 @@ void Executor::visitCall(CallInst &I) {
                     visitMalloc(I);
                 } else if (CalleeName == "popeye_make_named_object") {
                     visitPopeyeMakeNamedObject(I);
+                } else if (CalleeName == "popeye_name") {
+                    visitPopeyeName(I);
                 } else if (CalleeName == "popeye_make_global") {
                     visitPopeyeMakeGlobal(I);
                 } else if (ByteSwapFunctions.count(CalleeName.str())) {
@@ -683,6 +685,7 @@ void Executor::visitStore(StoreInst &I) {
     if (!EnableNaming) return;
 
     z3::expr_vector Bytes2Name = Z3::vec();
+    bool ConsecutiveBytes;
     if (auto *Global = dyn_cast<GlobalVariable>(Where2Store)) {
         auto *GlobalDbg = Global->getMetadata("dbg");
         if (auto *GlobalVarExp = dyn_cast_or_null<DIGlobalVariableExpression>(GlobalDbg)) {
@@ -692,9 +695,12 @@ void Executor::visitStore(StoreInst &I) {
             }
         }
     } else if (isa<ScalarValue>(Val2St) && !Val2St->poison()
-               && getBytes2Name(Val2St->value(), Bytes2Name) && !Bytes2Name.empty()) {
+               && getBytes2Name(Val2St->value(), Bytes2Name, &ConsecutiveBytes) && !Bytes2Name.empty()) {
         auto FieldName = getStructFieldName(Where2Store);
-        if (FieldName != UNKNOWN_NAME) {
+        if (FieldName == UNKNOWN_NAME) return;
+        if (ConsecutiveBytes) {
+            ES->addPC(Z3::naming(Z3::concat(Bytes2Name), FieldName.c_str()));
+        } else {
             for (auto B: Bytes2Name) ES->addPC(Z3::naming(B, FieldName.c_str()));
         }
     } else if (isa<AddressValue>(Val2St) && !Val2St->poison() && Val2St->size() == 1) {
@@ -1027,6 +1033,22 @@ void Executor::visitPopeyeMakeNamedObject(CallInst &I) {
     ((AddressValue *) NamedObjPtr)->assign(Addr);
     auto *NamedObj = Addr->at(0);
     NamedObj->set(Z3::bv_const(Name.str().c_str(), Bitwidth));
+}
+
+void Executor::visitPopeyeName(CallInst &I) {
+    assert(I.arg_size() == 2);
+    assert(I.getType()->isVoidTy());
+    z3::expr_vector Bytes2Name = Z3::vec();
+    auto AbsVal = ES->boundValue(I.getArgOperand(0));
+    if (isa<ScalarValue>(AbsVal) && !AbsVal->poison() && getBytes2Name(AbsVal->value(), Bytes2Name)
+        && !Bytes2Name.empty()) {
+        auto *NameGV = dyn_cast<GlobalVariable>(I.getArgOperand(1)->stripInBoundsConstantOffsets());
+        assert(NameGV && NameGV->isConstant());
+        auto *CDA = dyn_cast<ConstantDataArray>(NameGV->getInitializer());
+        assert(CDA && CDA->isCString());
+        auto Name = CDA->getAsCString();
+        for (auto B: Bytes2Name) ES->addPC(Z3::naming(Z3::concat(Bytes2Name), Name.str().c_str()));
+    }
 }
 
 void Executor::visitPopeyeMakeGlobal(CallInst &I) {
@@ -1476,13 +1498,13 @@ void Executor::visitRet(ReturnInst &I) {
         for (auto SMIt = ES->stack_mem_begin(), SMEnd = ES->stack_mem_end(); SMIt != SMEnd; ++SMIt) {
             auto *SM = *SMIt;
             assert(isa<StackMemoryBlock>(SM));
-            for (auto *Abs : *SM)
+            for (auto *Abs: *SM)
                 StackMemory.insert(Abs);
         }
 
         auto *CallerExecutor = CallStack.back().Exe;
         CallerExecutor->ES = ES;
-        for (auto *Abs : EscapedMemoryRevision) {
+        for (auto *Abs: EscapedMemoryRevision) {
             if (StackMemory.count(Abs)) continue; // stack mem cannot escape
             CallerExecutor->EscapedMemoryRevision.insert(Abs);
             if (!CallerExecutor->LoopStack.empty()) CallerExecutor->LoopStack.back()->recordMemoryRevised(Abs);
@@ -2847,9 +2869,10 @@ std::string Executor::getStructFieldName(Value *Val) {
     return Name;
 }
 
-bool Executor::getBytes2Name(const z3::expr &Expr, z3::expr_vector &Vec) {
+bool Executor::getBytes2Name(const z3::expr &Expr, z3::expr_vector &Vec, bool *ConsecutiveBytes) {
     // to find a single byte, a concatenation of a few bytes, or some simple ops (cast or binop) on the bytes
     // if the bytes have been named, we do not include them
+    if (ConsecutiveBytes) *ConsecutiveBytes = true;
 
     std::set<unsigned> Added2Vec;
     std::set<unsigned> Visited;
@@ -2863,6 +2886,7 @@ bool Executor::getBytes2Name(const z3::expr &Expr, z3::expr_vector &Vec) {
 
         auto Decl = Top.decl();
         if (Decl.decl_kind() == Z3_OP_SELECT) {
+            *ConsecutiveBytes = false;
             // a byte
             if (!ES->named(TopID) && !Added2Vec.count(TopID)) {
                 Added2Vec.insert(TopID);
@@ -2883,6 +2907,7 @@ bool Executor::getBytes2Name(const z3::expr &Expr, z3::expr_vector &Vec) {
                 continue;
             }
         } else if (Z3::is_phi(Top)) {
+            *ConsecutiveBytes = false;
             bool HasBytes = false;
             for (unsigned K = 0; K < Top.num_args(); ++K) {
                 auto PhiVal = Top.arg(K);

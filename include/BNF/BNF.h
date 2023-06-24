@@ -136,24 +136,19 @@ struct ProductionLessThan {
     }
 };
 
-typedef std::shared_ptr<BNF> BNFRef;
-
 class BNF {
 private:
     std::set<Production *, ProductionLessThan> Productions;
     std::set<Production *> FalseProductions;
 
 public:
-    BNF() = default;
-
     explicit BNF(const z3::expr &);
 
     ~BNF();
 
     void add(Production *P) { Productions.insert(P); }
 
-public:
-    static BNFRef get(const z3::expr &PC);
+    void dump(StringRef FileName);
 
 private:
     void pad();
@@ -182,10 +177,10 @@ private:
 
     int getEndianness(Production *P);
 
-    friend raw_ostream &operator<<(llvm::raw_ostream &, const BNFRef &);
+    friend raw_ostream &operator<<(llvm::raw_ostream &, const BNF &);
 };
 
-raw_ostream &operator<<(llvm::raw_ostream &, const BNFRef &);
+raw_ostream &operator<<(llvm::raw_ostream &, const BNF &);
 
 raw_ostream &operator<<(llvm::raw_ostream &, const Production &);
 

@@ -47,7 +47,7 @@ static cl::opt<std::string> EntryFunctionName("popeye-entry",
                                               cl::init("popeye_main"));
 
 static cl::list<std::string> EnableOutputs("popeye-output",
-                                           cl::desc("bnf | fsm | p:file | dot:file"),
+                                           cl::desc("bnf[:file] | fsm:file | p:file | dot:file"),
                                            cl::ZeroOrMore);
 
 char LiftingPass::ID = 0;
@@ -86,18 +86,19 @@ bool LiftingPass::runOnModule(Module &M) {
     // prepare output options
     std::string OutputPFile = "";
     std::string OutputDotFile = "";
-    bool OutputBNF = !EnableOutputs.getNumOccurrences(); // default true
-    std::string OutputFSM = "";
+    std::string OutputBNFFile = "";
+    std::string OutputFSMFile = "";
     for (auto &Op: EnableOutputs) {
         StringRef OpStr(Op);
         if (OpStr.startswith("p:")) {
             OutputPFile = OpStr.substr(strlen("p:")).str();
         } else if (OpStr.startswith("dot:")) {
             OutputDotFile = OpStr.substr(strlen("dot:")).str();
-        } else if (OpStr.startswith("bnf")) {
-            OutputBNF = true;
+        } else if (OpStr.startswith("bnf")) { // not "bnf:" for use simplicity ... we often do not print file
+            OutputBNFFile = OpStr.substr(strlen("bnf:")).str();
+            if (OutputBNFFile.empty()) OutputBNFFile = "-";
         } else if (OpStr.startswith("fsm:")) {
-            OutputFSM = OpStr.substr(strlen("fsm:")).str();
+            OutputFSMFile = OpStr.substr(strlen("fsm:")).str();
         }
     }
 
@@ -133,8 +134,8 @@ bool LiftingPass::runOnModule(Module &M) {
         auto *NewSlice = SliceGraph::get(PC, true);
         NewSlice->simplifyAfterSymbolicExecution();
         if (!OutputDotFile.empty()) NewSlice->dot(OutputDotFile, "final");
-        if (OutputBNF) outs() << BNF::get(NewSlice->pc()) << "\n";
-        if (!OutputFSM.empty()) FSM(NewSlice).dump(OutputFSM);
+        if (!OutputBNFFile.empty()) BNF(NewSlice->pc()).dump(OutputBNFFile);
+        if (!OutputFSMFile.empty()) FSM(NewSlice).dump(OutputFSMFile);
         if (!OutputPFile.empty()) PLang(NewSlice, guessEntryName(Entry)).dump(OutputPFile);
         delete NewSlice;
     }
@@ -197,6 +198,15 @@ void LiftingPass::checkBuiltInFunctions(Module &M) {
         assert(PopeyeMakeGlobal->arg_size() == 1);
         assert(PopeyeMakeGlobal->getArg(0)->getType()->isPointerTy());
         DeleteBody(PopeyeMakeGlobal);
+    }
+
+    auto *PopeyeName = M.getFunction("popeye_name");
+    if (PopeyeName) {
+        assert(PopeyeName->getReturnType()->isVoidTy());
+        assert(PopeyeName->arg_size() == 2);
+        assert(PopeyeName->getArg(0)->getType()->isIntegerTy());
+        assert(PopeyeName->getArg(1)->getType()->isPointerTy());
+        DeleteBody(PopeyeName);
     }
 }
 

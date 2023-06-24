@@ -34,6 +34,7 @@
 #define BASE "O"
 #define TRIP_COUNT "K"
 #define STR_LEM "strlem"
+#define STR_LEN "strlen"
 
 // for state machine (experimental)
 #define STATE "state"

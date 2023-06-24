@@ -453,8 +453,6 @@ static std::string to_string_default(const z3::expr &Expr) {
         Ret += Z3::to_string(Expr.arg(2));
         Ret += "]";
         return Ret;
-    } else if (Ret == STR_LEM) {
-        return Ret;
     }
 
     if (Expr.decl().decl_kind() == Z3_OP_EXTRACT && Z3::is_trip_count(Expr.arg(0))) {

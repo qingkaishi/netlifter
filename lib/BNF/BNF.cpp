@@ -162,6 +162,9 @@ Production::Production(const z3::expr &Expr, BNF *NF) : RHSItem(RK_Production), 
 }
 
 BNF::BNF(const z3::expr &Expr) {
+    if (Expr.is_false() || Expr.is_true() || Z3::is_free(Expr))
+        return;
+
     add(new Production(Expr, this));
     pad();
 
@@ -283,12 +286,12 @@ bool Production::containsNonTerminal() const {
     return false;
 }
 
-raw_ostream &operator<<(llvm::raw_ostream &O, const BNFRef &B) {
+raw_ostream &operator<<(llvm::raw_ostream &O, const BNF &B) {
     O << "\n<BNF>\n";
     bool First = true;
     unsigned NumAssertions = 0;
     unsigned NumProductions = 0;
-    for (auto *P: B->Productions) {
+    for (auto *P: B.Productions) {
         if (P->nonTerminalDisjunction()) continue;
 
         if (First) {
@@ -300,8 +303,10 @@ raw_ostream &operator<<(llvm::raw_ostream &O, const BNFRef &B) {
         NumAssertions += P->getNumAssertions();
         NumProductions += 1;
     }
-    if (!NumProductions)
+    if (!NumProductions) {
         O << "    " << "S := epsilon;\n";
+        NumProductions++;
+    }
     if (VSpell::enabled()) {
         O << "\n    ";
         O << "INIT := "
@@ -309,11 +314,12 @@ raw_ostream &operator<<(llvm::raw_ostream &O, const BNFRef &B) {
           << "C[S] "
           << "C[" << VSpell::file() << ":" << VSpell::endLine() + 1 << ":eof]";
         O << "\n";
+        NumProductions++;
     }
     O << "</BNF>\n";
     O << "\n# Productions: " << NumProductions << ".";
     O << "\n# Assertions: " << NumAssertions << ".";
-    if (NumProductions) O << "\nAssertions/Production: " << NumAssertions / NumProductions << ".\n";
+    O << "\nAssertions/Production: " << NumAssertions / NumProductions << ".\n";
 
     if (OraclePNum.getNumOccurrences()) {
         if (OraclePNum.getValue() != NumProductions)
@@ -406,8 +412,16 @@ void BNF::padTail(RHSItem *RHS, BoundRef End) {
 }
 
 
-BNFRef BNF::get(const z3::expr &PC) {
-    if (PC.is_false() || PC.is_true() || Z3::is_free(PC))
-        return std::make_shared<BNF>();
-    return std::make_shared<BNF>(PC);
+void BNF::dump(StringRef FileName) {
+    if (FileName != "-") {
+        std::error_code EC;
+        raw_fd_ostream PStream(FileName.str(), EC, sys::fs::F_None);
+        if (PStream.has_error()) {
+            errs() << "[Error] Cannot open the file <" << FileName << "> for writing.\n";
+            return;
+        }
+        PStream << *this << "\n";
+        POPEYE_INFO(FileName << " dumped!");
+    }
+    outs() << *this << "\n";
 }
