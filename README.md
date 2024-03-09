@@ -9,6 +9,14 @@ Qingkai Shi, Junyang Shao, Yapeng Ye, Mingwei Zheng, Xiangyu Zhang
 The ACM Conference on Computer and Communications Security (CCS '23)
 ```
 
+News! A follow-up work on identifying silent protocol bugs has been accepted by OOPSLA '24! [Artifact](https://github.com/zmw12306/ParDiff)
+
+```
+ParDiff: Practical Static Differential Analysis of Network Protocol Parsers
+Mingwei Zheng, Qingkai Shi, Xuwei Liu, Xiangzhe Xu, Le Yu, Congyu Liu, Guannan Wei, Xiangyu Zhang
+The ACM SIGPLAN Conference on Object-Oriented Programming, Systems, Languages, and Applications
+```
+
 ### Disclaimer 
 There are a lot of rough edges and bugs in this early prototype. Pull requests are welcome if you like to contribute to this project.
 
