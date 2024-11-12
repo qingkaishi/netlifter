@@ -14,4 +14,5 @@ add_library(PPYCore STATIC
         SliceGraph.cpp
         SymbolicExecution.cpp
         SymbolicExecutionTree.cpp
+        DDLLang.cpp
         )

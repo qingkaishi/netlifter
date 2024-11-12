@@ -29,6 +29,7 @@
 #include "Core/FSM.h"
 #include "Core/LoopInformationAnalysis.h"
 #include "Core/PLang.h"
+#include "Core/DDLLang.h"
 #include "Core/SliceGraph.h"
 #include "Core/SymbolicExecution.h"
 #include "Core/SymbolicExecutionTree.h"
@@ -47,7 +48,7 @@ static cl::opt<std::string> EntryFunctionName("popeye-entry",
                                               cl::init("popeye_main"));
 
 static cl::list<std::string> EnableOutputs("popeye-output",
-                                           cl::desc("bnf[:file] | fsm:file | p:file | dot:file"),
+                                           cl::desc("bnf[:file] | fsm:file | p:file | dot:file | ddl:file"),
                                            cl::ZeroOrMore);
 
 char LiftingPass::ID = 0;
@@ -88,6 +89,7 @@ bool LiftingPass::runOnModule(Module &M) {
     std::string OutputDotFile = "";
     std::string OutputBNFFile = "";
     std::string OutputFSMFile = "";
+    std::string OutputDDLFile = ""; //Daedalus dsl
     for (auto &Op: EnableOutputs) {
         StringRef OpStr(Op);
         if (OpStr.startswith("p:")) {
@@ -99,6 +101,8 @@ bool LiftingPass::runOnModule(Module &M) {
             if (OutputBNFFile.empty()) OutputBNFFile = "-";
         } else if (OpStr.startswith("fsm:")) {
             OutputFSMFile = OpStr.substr(strlen("fsm:")).str();
+        } else if (OpStr.startswith("ddl:")) {
+            OutputDDLFile = OpStr.substr(strlen("ddl:")).str();
         }
     }
 
@@ -137,6 +141,17 @@ bool LiftingPass::runOnModule(Module &M) {
         if (!OutputBNFFile.empty()) BNF(NewSlice->pc()).dump(OutputBNFFile);
         if (!OutputFSMFile.empty()) FSM(NewSlice).dump(OutputFSMFile);
         if (!OutputPFile.empty()) PLang(NewSlice, guessEntryName(Entry)).dump(OutputPFile);
+        if (!OutputDDLFile.empty()) 
+        {
+            BNF b(NewSlice->pc());
+            DDLLang d(&b);
+            // for(auto P : d.Bnf->Productions)
+            // {
+            //     d.Production2DDL(*P);
+            //     errs()<<"\n";
+            // }
+            d.dump(OutputDDLFile);
+        }
         delete NewSlice;
     }
 

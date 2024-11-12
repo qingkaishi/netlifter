@@ -73,7 +73,6 @@ public:
 };
 
 class Production : public RHSItem {
-private:
     /// the id of this production, standing for a non-terminal symbol on the left-hand side of the production
     /// may be printed as L_LHS
     unsigned LHS;
@@ -123,6 +122,7 @@ public:
 
 private:
     friend class BNF;
+    friend class DDLLang;
 
 public:
     static bool classof(const RHSItem *M) {
@@ -137,7 +137,6 @@ struct ProductionLessThan {
 };
 
 class BNF {
-private:
     std::set<Production *, ProductionLessThan> Productions;
     std::set<Production *> FalseProductions;
 
@@ -149,6 +148,8 @@ public:
     void add(Production *P) { Productions.insert(P); }
 
     void dump(StringRef FileName);
+
+    auto getProductions(){return Productions;}
 
 private:
     void pad();

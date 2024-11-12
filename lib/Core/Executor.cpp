@@ -131,7 +131,8 @@ static std::set<std::string> DeadFunctions = {
         "l2cap_build_cmd", "l2cap_chan_close", "l2cap_raw_recv",
         "osdp_compute_mac", "osdp_compute_crc16", "osdp_get_rand",
         "isis_unpack_tlvs", "isis_te_lsp_event", "ack_lsp", "isis_adj_build_neigh_list", "isis_tlvs_to_adj",
-        "format_address", "format_prefix", "format_eui64" // the functions are used only for print.
+        "format_address", "format_prefix", "format_eui64", // the functions are used only for print.
+        "SemaphoreComponentGenesis", "ExceptionComponentGenesis", "LogComponentGenesis", "AcquireSemaphoreInfo"
 };
 
 static std::set<std::string> DeadFunctionStartsWith = {
@@ -146,6 +147,7 @@ static std::set<std::string> DeadFunctionContains = {
         "release", "free", "realloc",
         "chksum", "checksum", "csum", "md5", "hmac", "print", "thread"
 };
+
 
 static bool isDeadFunction(Function *F) {
     auto LCCalleeName = F->getName().lower();
