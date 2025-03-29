@@ -567,7 +567,8 @@ std::string DDLLang::Production2DDL(Production& P)
 
             if (i != Items.size() - 1) 
             {
-                // errs() << " ";
+                code += "\n";
+                errs()<<"\n";
             }
         }
         // add a conjunction
