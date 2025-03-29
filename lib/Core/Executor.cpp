@@ -132,7 +132,7 @@ static std::set<std::string> DeadFunctions = {
         "osdp_compute_mac", "osdp_compute_crc16", "osdp_get_rand",
         "isis_unpack_tlvs", "isis_te_lsp_event", "ack_lsp", "isis_adj_build_neigh_list", "isis_tlvs_to_adj",
         "format_address", "format_prefix", "format_eui64", // the functions are used only for print.
-        "SemaphoreComponentGenesis", "ExceptionComponentGenesis", "LogComponentGenesis", "AcquireSemaphoreInfo"
+        "err_new", "err_set_debug" //error handling functions for openssl
 };
 
 static std::set<std::string> DeadFunctionStartsWith = {
@@ -1431,7 +1431,6 @@ void Executor::visitCallIPA(CallInst &I, Function *Callee) {
                                }
                            }
     );
-
     if (CallStackDepth.getNumOccurrences() && CallStack.size() > CallStackDepth.getValue()) {
         visitCallDefault(I);
         return;
