@@ -17,30 +17,32 @@
  */
 
 
-#ifndef P_DDLLANG_H
-#define P_DDLLANG_H
-
-#include "Core/SliceGraph.h"
-#include "BNF/BNF.h"
-#include <list>
-#include <vector>
-
-class DDLLang {
-public:
-    BNF *Bnf;
-
-public:
-    DDLLang(BNF *B) : Bnf(B){};
-
-    void dump(StringRef FileName);
-
-    std::string Production2DDL(Production& P);
-    std::string toStringTemplate(const z3::expr &Expr, const char *Op);
-    std::string toStringDefault(const z3::expr &Expr);
-    std::string toStringExtract(const z3::expr &Expr);
-    std::string toString(const z3::expr &Expr);
-};
-
-
-
-#endif //P_DDLLang_H
+ #ifndef P_DDLLANG_H
+ #define P_DDLLANG_H
+ 
+ #include "Core/SliceGraph.h"
+ #include "BNF/BNF.h"
+ #include <list>
+ #include <vector>
+ 
+ class DDLLang {
+ public:
+     BNF *Bnf;
+ 
+ public:
+     DDLLang(BNF *B) : Bnf(B){};
+ 
+     void dump(StringRef FileName);
+ 
+     std::string Production2DDL(Production& P);
+     std::string toStringTemplate(const z3::expr &Expr, const char *Op);
+     std::string toStringDefault(const z3::expr &Expr);
+     std::string toStringExtract(const z3::expr &Expr);
+     std::string toString(const z3::expr &Expr);
+     std::string toStringArgs(const z3::expr &Expr, const char *Op);
+ };
+ 
+ 
+ 
+ #endif //P_DDLLang_H
+ 
